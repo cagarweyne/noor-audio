@@ -1,26 +1,48 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   Noor — design tokens (Tailwind v4, CSS-first)
+   Tokens become utilities automatically: bg-ink, text-gold,
+   rounded-cover, shadow-glow, font-display, etc.
+   Font families point at the next/font variables set in layout.tsx.
+   ============================================================ */
+@theme {
+  /* colors (OKLCH — accurate; hex equivalents in comments) */
+  --color-ink: oklch(0.13 0.01 68); /* #0a0704 */
+  --color-ink-2: oklch(0.14 0.01 68); /* #0c0805 */
+  --color-surface: oklch(0.22 0.013 70); /* #1f1a14 */
+  --color-surface-2: oklch(0.24 0.013 70); /* #231e19 */
+  --color-surface-3: oklch(0.28 0.03 72); /* #322718 */
+  --color-line: oklch(0.3 0.01 72); /* #312d28 */
+  --color-gold: oklch(0.86 0.13 80); /* #fec766 */
+  --color-gold-accent: oklch(0.82 0.13 78); /* #f2b95a */
+  --color-amber: oklch(0.66 0.14 66); /* #cb7e19 */
+  --color-teal: oklch(0.55 0.08 195); /* #2a8080 */
+  --color-text-hi: oklch(0.96 0.008 85); /* #f4f1ec */
+  --color-text-mid: oklch(0.62 0.012 82); /* #8a867e */
+  --color-text-low: oklch(0.55 0.012 82); /* #75716a */
+  --color-ink-contrast: oklch(0.16 0.03 60); /* #170a02 */
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  /* fonts — bound to next/font variables (see app/layout.tsx) */
+  --font-display: var(--font-spectral), ui-serif, Georgia, serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-arabic: var(--font-amiri), "Spectral", serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* radius */
+  --radius-card: 14px;
+  --radius-cover: 16px;
+  --radius-cover-lg: 20px;
+  --radius-phone: 46px;
+
+  /* shadow */
+  --shadow-cover: 0 10px 24px -10px rgb(6 4 2 / 0.7);
+  --shadow-cover-lg: 0 22px 50px -14px rgb(6 4 2 / 0.85);
+  --shadow-glow: 0 10px 26px -6px rgb(254 199 102 / 0.55);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-ink);
+  color: var(--color-text-hi);
+  font-family: var(--font-sans);
 }
