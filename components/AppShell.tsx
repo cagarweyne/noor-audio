@@ -1,8 +1,7 @@
-import type { ReactNode } from "react";
-import SideNav from "@/components/SideNav";
-import PlayerBar from "@/components/PlayerBar";
-import MiniPlayer from "@/components/MiniPlayer";
-import BottomNav from "@/components/BottomNav";
+import type { ReactNode } from 'react';
+import SideNav from '@/components/SideNav';
+import PlayerBar from '@/components/PlayerBar';
+import BottomNav from '@/components/BottomNav';
 
 // Responsive application chrome shared by every route.
 //   mobile (<md): scroll area + floating mini-player + bottom tab bar
@@ -18,15 +17,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
         {/* mobile chrome: mini-player stacked over the tab bar */}
         <div className="shrink-0 md:hidden">
-          <div className="px-2 pb-2 pt-1">
-            <MiniPlayer />
-          </div>
           <BottomNav />
-        </div>
-
-        {/* tablet + desktop chrome: docked player bar */}
-        <div className="hidden md:block">
-          <PlayerBar />
         </div>
       </div>
     </div>
