@@ -136,3 +136,75 @@ export function getAdjacentSlugs(slug: string): { prev?: string; next?: string }
     next: i < TRACKS.length - 1 ? TRACKS[i + 1].slug : undefined,
   };
 }
+
+// ── Collections ────────────────────────────────────────────────────────────
+// Hardcoded for now. Later these load from the DB via a Server Component; the
+// screen components already take collections/tracks as props, so only the data
+// source changes.
+
+export type Collection = {
+  slug: string;
+  title: string;
+  arabicTitle?: string;
+  kind: string; // eyebrow label, e.g. "Recitations"
+  description: string;
+  hue: number;
+  trackSlugs: string[]; // references TRACKS by slug
+};
+
+export const COLLECTIONS: Collection[] = [
+  {
+    slug: "juz-amma",
+    title: "Juz' Amma",
+    arabicTitle: "جزء عمّ",
+    kind: "Recitations",
+    description:
+      "The 30th part of the Qur'an — short surahs for daily recitation and memorisation.",
+    hue: 78,
+    trackSlugs: ["juz-amma-recitation", "tazkiyah-purification", "ramadan-nights"],
+  },
+  {
+    slug: "seerah-and-stories",
+    title: "Seerah & Stories",
+    kind: "Series",
+    description: "Longer surahs recounting the stories of the prophets and their lessons.",
+    hue: 250,
+    trackSlugs: ["seerah-part-12", "stories-of-the-prophets"],
+  },
+  {
+    slug: "tafsir-essentials",
+    title: "Tafsir Essentials",
+    kind: "Series",
+    description: "Core surahs every student of the Qur'an returns to, with reflection.",
+    hue: 195,
+    trackSlugs: ["tafsir-essentials", "fiqh-of-worship"],
+  },
+  {
+    slug: "daily-protection",
+    title: "Daily Protection",
+    arabicTitle: "الحماية اليومية",
+    kind: "Collection",
+    description: "Surahs and du'as recited morning and evening for protection and barakah.",
+    hue: 150,
+    trackSlugs: ["prophetic-duas", "fiqh-of-worship", "tazkiyah-purification"],
+  },
+  {
+    slug: "ramadan-nights",
+    title: "Ramadan Nights",
+    kind: "Collection",
+    description: "A gentle set for the blessed nights — Al-Qadr, Al-Fatihah and more.",
+    hue: 40,
+    trackSlugs: ["ramadan-nights", "juz-amma-recitation", "prophetic-duas"],
+  },
+];
+
+export function getCollection(slug: string): Collection | undefined {
+  return COLLECTIONS.find((c) => c.slug === slug);
+}
+
+// Resolve a collection's track slugs to full Track objects (skips any unknown).
+export function collectionTracks(collection: Collection): Track[] {
+  return collection.trackSlugs
+    .map((s) => getTrack(s))
+    .filter((t): t is Track => Boolean(t));
+}

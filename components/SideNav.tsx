@@ -4,9 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AppLogo from "@/components/AppLogo";
 import { NAV_ITEMS, navIsActive } from "@/components/navigation";
-
-// Demo library entries (desktop only). Replace with fetched collections.
-const LIBRARY = ["Juz' Amma", "The Seerah", "Fiqh of Worship", "Prophetic Duas"];
+import { COLLECTIONS } from "@/components/catalog";
 
 // Left navigation for tablet (md, icon rail) and desktop (lg, labelled sidebar).
 export default function SideNav() {
@@ -52,13 +50,13 @@ export default function SideNav() {
           Your Library
         </div>
         <ul className="mt-3 flex flex-col gap-1 overflow-y-auto">
-          {LIBRARY.map((name) => (
-            <li key={name}>
+          {COLLECTIONS.map((c) => (
+            <li key={c.slug}>
               <Link
-                href="#"
+                href={`/collection/${c.slug}`}
                 className="block truncate rounded-md px-2 py-1.5 text-[13.5px] text-text-mid no-underline hover:bg-surface-2 hover:text-text-hi"
               >
-                {name}
+                {c.title}
               </Link>
             </li>
           ))}
