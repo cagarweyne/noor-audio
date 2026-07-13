@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import ReactPlayer from "react-player";
 import {
+  ChevronLeft,
   Heart,
   Shuffle,
   SkipBack,
@@ -21,6 +23,8 @@ type PlayerProps = {
   track: Track;
   prevSlug?: string;
   nextSlug?: string;
+  backHref?: string; // where the back chevron returns to (the track's collection)
+  collectionLabel?: string;
 };
 
 const SPEEDS = [1, 1.5, 2] as const;
@@ -28,7 +32,13 @@ const SPEEDS = [1, 1.5, 2] as const;
 // Persisted resume position, so a track reopens where you left off.
 const posKey = (slug: string) => `noor-player-pos:${slug}`;
 
-export default function Player({ track, prevSlug, nextSlug }: PlayerProps) {
+export default function Player({
+  track,
+  prevSlug,
+  nextSlug,
+  backHref = "/library",
+  collectionLabel = track.collection,
+}: PlayerProps) {
   const router = useRouter();
   const scrubRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLVideoElement>(null);
@@ -143,13 +153,21 @@ export default function Player({ track, prevSlug, nextSlug }: PlayerProps) {
         )}
 
         {/* header */}
-        <div className="flex items-center justify-center pt-3">
+        <div className="flex items-center justify-between pt-3">
+          <Link
+            href={backHref}
+            aria-label="Back to collection"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/25 text-text-hi backdrop-blur"
+          >
+            <ChevronLeft size={22} />
+          </Link>
           <div className="text-center">
             <div className="font-mono text-[10px] tracking-[0.14em] text-white/70">
               PLAYING FROM COLLECTION
             </div>
-            <div className="mt-0.5 text-[12.5px] font-bold">{track.collection}</div>
+            <div className="mt-0.5 text-[12.5px] font-bold">{collectionLabel}</div>
           </div>
+          <div className="w-9" />
         </div>
 
         {/* cover */}

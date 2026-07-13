@@ -208,3 +208,9 @@ export function collectionTracks(collection: Collection): Track[] {
     .map((s) => getTrack(s))
     .filter((t): t is Track => Boolean(t));
 }
+
+// The collection a track belongs to (first match if it appears in several).
+// Used by the player's back button so direct links still know where to return.
+export function getCollectionForTrack(slug: string): Collection | undefined {
+  return COLLECTIONS.find((c) => c.trackSlugs.includes(slug));
+}
