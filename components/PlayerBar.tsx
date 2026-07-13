@@ -1,55 +1,49 @@
 "use client";
 
-import { useState } from "react";
-import {
-  Heart,
-  Shuffle,
-  SkipBack,
-  SkipForward,
-  Play,
-  Pause,
-  Repeat,
-  ListMusic,
-  Volume2,
-} from "lucide-react";
+import Link from "next/link";
+import { SkipBack, SkipForward, Play, Pause, Volume2, VolumeX } from "lucide-react";
 import { Cover } from "@/components/Cover";
-import { DEMO_NOW_PLAYING, formatTime, type NowPlaying } from "@/components/player";
+import { formatTime } from "@/components/player";
+import { usePlayer } from "@/components/player-context";
+import { getAdjacentSlugs } from "@/components/catalog";
 
-type PlayerBarProps = {
-  track?: NowPlaying;
-};
+// Docked player bar for tablet (md) and desktop (lg). Reflects the shared
+// player; the now-playing area links to the full player.
+export default function PlayerBar() {
+  const { track, isPlaying, position, duration, volume, muted, toggle, seek, setVolume, toggleMuted } =
+    usePlayer();
+  if (!track) return null;
 
-// Docked player bar for tablet (md) and desktop (lg).
-// md: now-playing + centered transport. lg: adds shuffle/repeat + volume/queue.
-export default function PlayerBar({ track = DEMO_NOW_PLAYING }: PlayerBarProps) {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const pct = track.duration ? (track.position / track.duration) * 100 : 0;
+  const pct = duration ? (position / duration) * 100 : 0;
+  const { prev, next } = getAdjacentSlugs(track.slug);
 
   return (
     <div className="flex h-[84px] shrink-0 items-center gap-4 border-t border-line bg-surface/70 px-4 backdrop-blur-md lg:px-6">
-      {/* now playing */}
-      <div className="flex w-[34%] min-w-0 items-center gap-3 lg:w-[30%]">
+      {/* now playing → opens the full player */}
+      <Link
+        href={`/player/${track.slug}`}
+        className="flex w-[34%] min-w-0 items-center gap-3 no-underline lg:w-[30%]"
+      >
         <Cover hue={track.hue} className="h-12 w-12 shrink-0 rounded-[10px] shadow-cover" />
         <div className="min-w-0">
           <div className="truncate text-[13.5px] font-bold text-text-hi">{track.title}</div>
-          <div className="truncate text-[11.5px] text-text-mid">{track.subtitle}</div>
+          <div className="truncate text-[11.5px] text-text-mid">{track.meta}</div>
         </div>
-        <button aria-label="Like" className="ml-1 hidden text-text-mid hover:text-gold lg:block">
-          <Heart size={18} strokeWidth={1.8} />
-        </button>
-      </div>
+      </Link>
 
       {/* transport + scrubber */}
       <div className="flex flex-1 flex-col items-center gap-1.5">
         <div className="flex items-center gap-5 text-text-hi">
-          <button aria-label="Shuffle" className="hidden text-text-mid hover:text-text-hi lg:block">
-            <Shuffle size={18} strokeWidth={1.8} />
-          </button>
-          <button aria-label="Previous" className="text-text-mid hover:text-text-hi">
+          <Link
+            href={prev ? `/player/${prev}` : `/player/${track.slug}`}
+            aria-label="Previous"
+            aria-disabled={!prev}
+            className={`text-text-mid hover:text-text-hi ${prev ? "" : "pointer-events-none opacity-30"}`}
+          >
             <SkipBack size={20} fill="currentColor" />
-          </button>
+          </Link>
           <button
-            onClick={() => setIsPlaying((v) => !v)}
+            onClick={toggle}
             aria-label={isPlaying ? "Pause" : "Play"}
             className="flex h-10 w-10 items-center justify-center rounded-full bg-gold text-ink-contrast shadow-glow"
           >
@@ -59,37 +53,50 @@ export default function PlayerBar({ track = DEMO_NOW_PLAYING }: PlayerBarProps) 
               <Play size={19} fill="currentColor" className="ml-0.5" />
             )}
           </button>
-          <button aria-label="Next" className="text-text-mid hover:text-text-hi">
+          <Link
+            href={next ? `/player/${next}` : `/player/${track.slug}`}
+            aria-label="Next"
+            aria-disabled={!next}
+            className={`text-text-mid hover:text-text-hi ${next ? "" : "pointer-events-none opacity-30"}`}
+          >
             <SkipForward size={20} fill="currentColor" />
-          </button>
-          <button aria-label="Repeat" className="hidden text-text-mid hover:text-text-hi lg:block">
-            <Repeat size={18} strokeWidth={1.8} />
-          </button>
+          </Link>
         </div>
         <div className="flex w-full max-w-xl items-center gap-2 text-[11px] tabular-nums text-text-mid">
-          <span>{formatTime(track.position)}</span>
-          <div className="relative h-1 flex-1 rounded bg-line">
-            <div className="h-full rounded bg-gold" style={{ width: `${pct}%` }} />
-            <div
-              className="absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold"
-              style={{ left: `${pct}%` }}
-            />
-          </div>
-          <span>{formatTime(track.duration)}</span>
+          <span>{formatTime(position)}</span>
+          <input
+            type="range"
+            min={0}
+            max={Math.max(1, Math.floor(duration))}
+            step={1}
+            value={Math.floor(position)}
+            onChange={(e) => seek(Number(e.target.value))}
+            aria-label="Seek"
+            className="h-1 flex-1 cursor-pointer accent-gold"
+          />
+          <span>{formatTime(duration)}</span>
         </div>
       </div>
 
-      {/* volume + queue (desktop only) */}
-      <div className="hidden w-[30%] items-center justify-end gap-4 lg:flex">
-        <button aria-label="Queue" className="text-text-mid hover:text-text-hi">
-          <ListMusic size={18} strokeWidth={1.8} />
+      {/* volume (desktop only) */}
+      <div className="hidden w-[30%] items-center justify-end gap-2 text-text-mid lg:flex">
+        <button
+          onClick={toggleMuted}
+          aria-label={muted ? "Unmute" : "Mute"}
+          className="hover:text-text-hi"
+        >
+          {muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
         </button>
-        <div className="flex items-center gap-2 text-text-mid">
-          <Volume2 size={18} strokeWidth={1.8} />
-          <div className="relative h-1 w-24 rounded bg-line">
-            <div className="h-full w-2/3 rounded bg-text-mid" />
-          </div>
-        </div>
+        <input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={muted ? 0 : volume}
+          onChange={(e) => setVolume(Number(e.target.value))}
+          aria-label="Volume"
+          className="w-24 cursor-pointer accent-gold"
+        />
       </div>
     </div>
   );

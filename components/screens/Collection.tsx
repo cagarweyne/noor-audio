@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ChevronLeft, Heart, ArrowDownToLine, ArrowDownUp, Play } from "lucide-react";
 import { coverGradient } from "@/components/Cover";
 import { formatTime } from "@/components/player";
@@ -14,7 +13,6 @@ type CollectionScreenProps = {
 };
 
 export default function CollectionScreen({ collection, tracks }: CollectionScreenProps) {
-  const router = useRouter();
   const [isLiked, setIsLiked] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const first = tracks[0];
@@ -30,13 +28,13 @@ export default function CollectionScreen({ collection, tracks }: CollectionScree
       />
 
       <div className="relative mx-auto w-full max-w-2xl px-5 pb-10 pt-4 md:px-8">
-        <button
-          onClick={() => router.back()}
-          aria-label="Back"
+        <Link
+          href="/"
+          aria-label="Back to home"
           className="flex h-9 w-9 items-center justify-center rounded-full bg-black/25 text-text-hi backdrop-blur"
         >
           <ChevronLeft size={22} />
-        </button>
+        </Link>
 
         {/* header */}
         <div className="mt-3 flex flex-col items-center text-center">

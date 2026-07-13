@@ -1,28 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Pause, Play } from "lucide-react";
 import { Cover } from "@/components/Cover";
-import { DEMO_NOW_PLAYING, type NowPlaying } from "@/components/player";
+import { usePlayer } from "@/components/player-context";
 
-type MiniPlayerProps = {
-  track?: NowPlaying;
-};
+// Floating mini-player shown above the BottomNav on mobile. Reflects the shared
+// player; tapping it opens the full player, the button toggles play/pause.
+export default function MiniPlayer() {
+  const { track, isPlaying, position, duration, toggle } = usePlayer();
+  const pathname = usePathname();
 
-// Floating mini-player shown above the BottomNav on mobile.
-export default function MiniPlayer({ track = DEMO_NOW_PLAYING }: MiniPlayerProps) {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const pct = track.duration ? (track.position / track.duration) * 100 : 0;
+  // Hide on the full player page — it's already the player there.
+  if (!track || pathname.startsWith("/player/")) return null;
+
+  const pct = duration ? (position / duration) * 100 : 0;
 
   return (
-    <div className="relative mx-2 flex h-[60px] items-center gap-[11px] rounded-[15px] bg-surface-3 px-3 shadow-cover">
+    <Link
+      href={`/player/${track.slug}`}
+      className="relative mx-2 mb-1 flex h-[60px] items-center gap-[11px] rounded-[15px] bg-surface-3 px-3 no-underline shadow-cover"
+    >
       <Cover hue={track.hue} className="h-[42px] w-[42px] flex-shrink-0 rounded-[9px]" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-[13px] font-bold text-text-hi">{track.title}</div>
-        <div className="truncate text-[11.5px] text-text-mid">{track.subtitle}</div>
+        <div className="truncate text-[11.5px] text-text-mid">{track.meta}</div>
       </div>
       <button
-        onClick={() => setIsPlaying((v) => !v)}
+        onClick={(e) => {
+          e.preventDefault();
+          toggle();
+        }}
         className="text-text-hi"
         aria-label={isPlaying ? "Pause" : "Play"}
       >
@@ -31,6 +40,6 @@ export default function MiniPlayer({ track = DEMO_NOW_PLAYING }: MiniPlayerProps
       <div className="absolute inset-x-3 bottom-1.5 h-[2.5px] rounded bg-white/15">
         <div className="h-full rounded bg-gold" style={{ width: `${pct}%` }} />
       </div>
-    </div>
+    </Link>
   );
 }

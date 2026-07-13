@@ -1,25 +1,37 @@
-import type { ReactNode } from 'react';
-import SideNav from '@/components/SideNav';
-import PlayerBar from '@/components/PlayerBar';
-import BottomNav from '@/components/BottomNav';
+import type { ReactNode } from "react";
+import { PlayerProvider } from "@/components/player-context";
+import SideNav from "@/components/SideNav";
+import PlayerBar from "@/components/PlayerBar";
+import MiniPlayer from "@/components/MiniPlayer";
+import BottomNav from "@/components/BottomNav";
 
-// Responsive application chrome shared by every route.
-//   mobile (<md): scroll area + floating mini-player + bottom tab bar
+// Responsive application chrome shared by every route. PlayerProvider owns the
+// single audio instance and lives here (the persistent layout), so playback
+// continues as pages navigate underneath it.
+//   mobile (<md): scroll area + mini-player + bottom tab bar
 //   tablet (md):  icon rail  + scroll area + docked player bar
 //   desktop (lg): sidebar    + scroll area + docked player bar
 export default function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex h-dvh overflow-hidden bg-ink text-text-hi">
-      <SideNav />
+    <PlayerProvider>
+      <div className="flex h-dvh overflow-hidden bg-ink text-text-hi">
+        <SideNav />
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
 
-        {/* mobile chrome: mini-player stacked over the tab bar */}
-        <div className="shrink-0 md:hidden">
-          <BottomNav />
+          {/* mobile chrome: mini-player stacked over the tab bar */}
+          <div className="shrink-0 md:hidden">
+            <MiniPlayer />
+            <BottomNav />
+          </div>
+
+          {/* tablet + desktop chrome: docked player bar */}
+          <div className="hidden md:block">
+            <PlayerBar />
+          </div>
         </div>
       </div>
-    </div>
+    </PlayerProvider>
   );
 }

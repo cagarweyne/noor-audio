@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import ReactPlayer from "react-player";
 import {
   ChevronLeft,
   Heart,
@@ -17,6 +15,7 @@ import {
 } from "lucide-react";
 import { Cover } from "@/components/Cover";
 import { formatTime } from "@/components/player";
+import { usePlayer } from "@/components/player-context";
 import type { Track } from "@/components/catalog";
 
 type PlayerProps = {
@@ -29,9 +28,9 @@ type PlayerProps = {
 
 const SPEEDS = [1, 1.5, 2] as const;
 
-// Persisted resume position, so a track reopens where you left off.
-const posKey = (slug: string) => `noor-player-pos:${slug}`;
-
+// Now Playing view. The audio itself lives in PlayerProvider (so it survives
+// navigation) — this screen just loads the track on mount and drives the
+// shared player. Cover/ayah/title come from the page's own `track` prop.
 export default function Player({
   track,
   prevSlug,
@@ -39,87 +38,39 @@ export default function Player({
   backHref = "/library",
   collectionLabel = track.collection,
 }: PlayerProps) {
-  const router = useRouter();
+  const player = usePlayer();
   const scrubRef = useRef<HTMLDivElement>(null);
-  const mediaRef = useRef<HTMLVideoElement>(null);
-  const hasAudio = Boolean(track.audioUrl);
 
-  // Resume point from the catalog's progress; overridden by saved position below.
-  const resumeAt = Math.round((track.progress ?? 0) * track.durationSec);
-  const desiredStart = useRef(resumeAt);
-  const didSeek = useRef(false);
-
-  const [position, setPosition] = useState(resumeAt);
-  const [duration, setDuration] = useState(track.durationSec);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [rate, setRate] = useState<number>(1);
-  const [volume, setVolume] = useState(1);
-  const [muted, setMuted] = useState(false);
+  // Local UI-only toggles (not tied to audio).
   const [isLiked, setIsLiked] = useState(false);
   const [shuffle, setShuffle] = useState(false);
 
-  // On mount (client only), prefer a previously saved position over the catalog resume.
+  // Ensure this track is the one playing. If it's already current (e.g. the
+  // user tapped the mini-player), leave it be so it keeps playing.
   useEffect(() => {
-    try {
-      const saved = Number(localStorage.getItem(posKey(track.slug)));
-      if (Number.isFinite(saved) && saved > 0) desiredStart.current = saved;
-    } catch {
-      /* localStorage unavailable — fall back to catalog resume */
+    if (player.track?.slug !== track.slug) {
+      player.load(track, { autoplay: true });
     }
-    setPosition(desiredStart.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [track.slug]);
 
-  // Persist the current position (once per second — position is whole seconds).
-  useEffect(() => {
-    try {
-      localStorage.setItem(posKey(track.slug), String(position));
-    } catch {
-      /* ignore */
-    }
-  }, [track.slug, position]);
-
-  // Simulated playback for tracks without a real audio file.
-  useEffect(() => {
-    if (hasAudio || !isPlaying) return;
-    const id = setInterval(() => {
-      setPosition((p) => {
-        if (p >= duration) {
-          setIsPlaying(false);
-          return duration;
-        }
-        return Math.min(duration, p + rate);
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [hasAudio, isPlaying, duration, rate]);
-
-  // Seek the real media element to the resume point once its duration is known
-  // (clamped so a resume point never lands past the end of a short track).
-  const applyStartSeek = () => {
-    if (didSeek.current) return;
-    const el = mediaRef.current;
-    if (!el) return;
-    const dur = el.duration;
-    if (!Number.isFinite(dur) || dur <= 0) return; // wait for metadata
-    didSeek.current = true;
-    el.currentTime = Math.min(desiredStart.current, Math.max(0, dur - 1));
-  };
-
-  const seekTo = (t: number) => {
-    const clamped = Math.min(duration, Math.max(0, t));
-    setPosition(Math.round(clamped));
-    if (mediaRef.current) mediaRef.current.currentTime = clamped;
-  };
+  const isCurrent = player.track?.slug === track.slug;
+  const resumeAt = Math.round((track.progress ?? 0) * track.durationSec);
+  const position = isCurrent ? player.position : resumeAt;
+  const duration = isCurrent ? player.duration || track.durationSec : track.durationSec;
+  const isPlaying = isCurrent && player.isPlaying;
+  const rate = isCurrent ? player.rate : 1;
+  const volume = player.volume;
+  const muted = player.muted;
+  const pct = duration ? (position / duration) * 100 : 0;
 
   const onScrubClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = scrubRef.current;
     if (!el) return;
     const rect = el.getBoundingClientRect();
     const frac = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
-    seekTo(frac * duration);
+    player.seek(frac * duration);
   };
-
-  const pct = duration ? (position / duration) * 100 : 0;
 
   return (
     <div
@@ -129,29 +80,6 @@ export default function Player({
       }}
     >
       <div className="mx-auto flex min-h-full w-full max-w-md flex-col px-6 pb-8 text-text-hi">
-        {hasAudio && (
-          <ReactPlayer
-            ref={mediaRef}
-            src={track.audioUrl}
-            playing={isPlaying}
-            playbackRate={rate}
-            volume={muted ? 0 : volume}
-            controls={false}
-            onReady={applyStartSeek}
-            onLoadedMetadata={(e) => {
-              const el = e.currentTarget as HTMLMediaElement;
-              if (Number.isFinite(el.duration)) setDuration(Math.floor(el.duration));
-              applyStartSeek();
-            }}
-            onTimeUpdate={(e) => {
-              const t = Math.floor((e.currentTarget as HTMLMediaElement).currentTime);
-              setPosition((prev) => (t !== prev ? t : prev));
-            }}
-            onEnded={() => setIsPlaying(false)}
-            style={{ display: "none" }}
-          />
-        )}
-
         {/* header */}
         <div className="flex items-center justify-between pt-3">
           <Link
@@ -228,7 +156,7 @@ export default function Player({
               max={Math.max(1, Math.floor(duration))}
               step={1}
               value={Math.floor(position)}
-              onChange={(e) => seekTo(Number(e.target.value))}
+              onChange={(e) => player.seek(Number(e.target.value))}
               aria-label="Seek"
               className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
             />
@@ -252,16 +180,16 @@ export default function Player({
               strokeWidth={1.8}
             />
           </button>
-          <button
+          <Link
+            href={prevSlug ? `/player/${prevSlug}` : "#"}
             aria-label="Previous"
-            disabled={!prevSlug}
-            onClick={() => prevSlug && router.push(`/player/${prevSlug}`)}
-            className="disabled:opacity-30"
+            aria-disabled={!prevSlug}
+            className={prevSlug ? "" : "pointer-events-none opacity-30"}
           >
             <SkipBack size={30} fill="currentColor" />
-          </button>
+          </Link>
           <button
-            onClick={() => setIsPlaying((v) => !v)}
+            onClick={player.toggle}
             aria-label={isPlaying ? "Pause" : "Play"}
             className="flex h-[70px] w-[70px] items-center justify-center rounded-full bg-text-hi shadow-cover-lg"
           >
@@ -271,14 +199,14 @@ export default function Player({
               <Play size={30} className="ml-1 text-ink-contrast" fill="currentColor" />
             )}
           </button>
-          <button
+          <Link
+            href={nextSlug ? `/player/${nextSlug}` : "#"}
             aria-label="Next"
-            disabled={!nextSlug}
-            onClick={() => nextSlug && router.push(`/player/${nextSlug}`)}
-            className="disabled:opacity-30"
+            aria-disabled={!nextSlug}
+            className={nextSlug ? "" : "pointer-events-none opacity-30"}
           >
             <SkipForward size={30} fill="currentColor" />
-          </button>
+          </Link>
         </div>
 
         {/* speed + volume controls */}
@@ -287,7 +215,7 @@ export default function Player({
             {SPEEDS.map((r) => (
               <button
                 key={r}
-                onClick={() => setRate(r)}
+                onClick={() => player.setRate(r)}
                 aria-pressed={rate === r}
                 className={`rounded-full px-2.5 py-1 text-[12px] font-semibold transition-colors ${
                   rate === r ? "bg-gold text-ink-contrast" : "bg-white/10 text-white/80"
@@ -298,31 +226,26 @@ export default function Player({
             ))}
           </div>
 
-          {hasAudio && (
-            <div className="flex items-center gap-2">
-              <button
-                aria-label={muted ? "Unmute" : "Mute"}
-                aria-pressed={muted}
-                onClick={() => setMuted((v) => !v)}
-                className="text-white/85"
-              >
-                {muted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-              </button>
-              <input
-                type="range"
-                min={0}
-                max={1}
-                step={0.05}
-                value={muted ? 0 : volume}
-                onChange={(e) => {
-                  setVolume(Number(e.target.value));
-                  setMuted(false);
-                }}
-                aria-label="Volume"
-                className="w-24 cursor-pointer accent-gold"
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            <button
+              aria-label={muted ? "Unmute" : "Mute"}
+              aria-pressed={muted}
+              onClick={player.toggleMuted}
+              className="text-white/85"
+            >
+              {muted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+            </button>
+            <input
+              type="range"
+              min={0}
+              max={1}
+              step={0.05}
+              value={muted ? 0 : volume}
+              onChange={(e) => player.setVolume(Number(e.target.value))}
+              aria-label="Volume"
+              className="w-24 cursor-pointer accent-gold"
+            />
+          </div>
         </div>
       </div>
     </div>
