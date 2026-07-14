@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import CollectionScreen from "@/components/screens/Collection";
-import { getCollection, collectionTracks, COLLECTIONS } from "@/components/catalog";
+import { getCollection, getCollectionSlugs } from "@/lib/collections";
 
-// Pre-render a page for every catalog collection.
-export function generateStaticParams() {
-  return COLLECTIONS.map((c) => ({ id: c.slug }));
+// Prebuild the known collections; others render on demand.
+export async function generateStaticParams() {
+  const slugs = await getCollectionSlugs();
+  return slugs.map((id) => ({ id }));
 }
 
 export default async function CollectionPage({
@@ -13,8 +14,9 @@ export default async function CollectionPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const collection = getCollection(id);
+
+  const collection = await getCollection(id).catch(() => null);
   if (!collection) notFound();
 
-  return <CollectionScreen collection={collection} tracks={collectionTracks(collection)} />;
+  return <CollectionScreen collection={collection} tracks={collection.tracks} />;
 }

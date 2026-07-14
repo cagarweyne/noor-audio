@@ -10,12 +10,27 @@ import {
   type ReactNode,
 } from "react";
 import ReactPlayer from "react-player";
-import type { Track } from "@/components/catalog";
+import type { Track } from "@/types";
+import { recordRecentlyPlayed } from "@/lib/recently-played";
 
-// Persisted resume position (per track), so playback reopens where you left off.
-const posKey = (slug: string) => `noor-player-pos:${slug}`;
+// Persisted resume position, keyed by the (unique) audio URL so tracks that
+// share a slug across collections don't collide.
+const trackId = (t: Track) => t.audioUrl ?? t.slug;
+const posKey = (t: Track) => `noor-player-pos:${trackId(t)}`;
 
-type PlayerContextValue = {
+// Navigation context for a loaded track — lets the mini-player / player bar
+// link to the full player and step through the collection without knowing it.
+type NavContext = {
+  currentHref?: string;
+  prevHref?: string;
+  nextHref?: string;
+  backHref?: string;
+  collectionLabel?: string;
+};
+
+type LoadOpts = NavContext & { autoplay?: boolean };
+
+type PlayerContextValue = NavContext & {
   track: Track | null;
   isPlaying: boolean;
   position: number;
@@ -23,8 +38,7 @@ type PlayerContextValue = {
   rate: number;
   volume: number;
   muted: boolean;
-  /** Load a track (optionally autoplay). No-op reset if it's already current. */
-  load: (track: Track, opts?: { autoplay?: boolean }) => void;
+  load: (track: Track, opts?: LoadOpts) => void;
   toggle: () => void;
   seek: (seconds: number) => void;
   setRate: (rate: number) => void;
@@ -48,6 +62,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const didSeek = useRef(false);
 
   const [track, setTrack] = useState<Track | null>(null);
+  const [nav, setNav] = useState<NavContext>({});
   const [isPlaying, setIsPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -55,11 +70,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [volume, setVolumeState] = useState(1);
   const [muted, setMuted] = useState(false);
 
-  const load = useCallback((next: Track, opts?: { autoplay?: boolean }) => {
+  const load = useCallback((next: Track, opts?: LoadOpts) => {
     // Resume point: saved position (localStorage) wins over catalog progress.
     let start = Math.round((next.progress ?? 0) * next.durationSec);
     try {
-      const saved = Number(localStorage.getItem(posKey(next.slug)));
+      const saved = Number(localStorage.getItem(posKey(next)));
       if (Number.isFinite(saved) && saved > 0) start = saved;
     } catch {
       /* localStorage unavailable — fall back to catalog resume */
@@ -67,6 +82,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     desiredStart.current = start;
     didSeek.current = false;
     setTrack(next);
+    setNav({
+      currentHref: opts?.currentHref,
+      prevHref: opts?.prevHref,
+      nextHref: opts?.nextHref,
+      backHref: opts?.backHref,
+      collectionLabel: opts?.collectionLabel,
+    });
     setDuration(next.durationSec);
     setPosition(start);
     setIsPlaying(opts?.autoplay ?? true);
@@ -98,15 +120,26 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     el.currentTime = Math.min(desiredStart.current, Math.max(0, dur - 1));
   }, []);
 
-  // Persist position (once per second — position is whole seconds).
+  // Persist position (once per second) + update the "continue listening" list.
   useEffect(() => {
     if (!track) return;
     try {
-      localStorage.setItem(posKey(track.slug), String(position));
+      localStorage.setItem(posKey(track), String(position));
     } catch {
       /* ignore */
     }
-  }, [track, position]);
+    if (nav.currentHref) {
+      recordRecentlyPlayed({
+        href: nav.currentHref,
+        title: track.title,
+        meta: track.meta,
+        hue: track.hue,
+        positionSec: position,
+        durationSec: duration || track.durationSec,
+        updatedAt: Date.now(),
+      });
+    }
+  }, [track, position, duration, nav.currentHref]);
 
   // Drive play/pause imperatively (instead of react-player's `playing` prop) so
   // we can swallow the harmless AbortError thrown when the source swaps or the
@@ -126,7 +159,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     } else {
       el.pause();
     }
-  }, [isPlaying, track?.slug]);
+  }, [isPlaying, track?.audioUrl]);
 
   const value: PlayerContextValue = {
     track,
@@ -136,6 +169,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     rate,
     volume,
     muted,
+    ...nav,
     load,
     toggle,
     seek,

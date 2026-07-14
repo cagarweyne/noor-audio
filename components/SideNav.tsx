@@ -4,10 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AppLogo from "@/components/AppLogo";
 import { NAV_ITEMS, navIsActive } from "@/components/navigation";
-import { COLLECTIONS } from "@/components/catalog";
+
+type SideNavProps = {
+  collections: { slug: string; title: string }[];
+};
 
 // Left navigation for tablet (md, icon rail) and desktop (lg, labelled sidebar).
-export default function SideNav() {
+export default function SideNav({ collections }: SideNavProps) {
   const pathname = usePathname();
 
   return (
@@ -50,7 +53,7 @@ export default function SideNav() {
           Your Library
         </div>
         <ul className="mt-3 flex flex-col gap-1 overflow-y-auto">
-          {COLLECTIONS.map((c) => (
+          {collections.map((c) => (
             <li key={c.slug}>
               <Link
                 href={`/collection/${c.slug}`}

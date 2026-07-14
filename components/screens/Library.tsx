@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, Plus, ChevronRight, Heart, ArrowDownToLine, ArrowDownUp } from "lucide-react";
 import { coverGradient } from "@/components/Cover";
-import type { Collection } from "@/components/catalog";
+import type { Collection } from "@/types";
 
 const FILTERS = ["All", "Collections", "Reciters", "Downloads"] as const;
 type Filter = (typeof FILTERS)[number];

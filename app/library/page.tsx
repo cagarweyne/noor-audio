@@ -1,9 +1,9 @@
 import Library from "@/components/screens/Library";
-import { COLLECTIONS } from "@/components/catalog";
+import { getAllCollections } from "@/lib/collections";
 
-// Collections are hardcoded for now. Later this becomes an async Server
-// Component that fetches them from the DB — only this line changes:
-//   const collections = await getCollections();
-export default function LibraryPage() {
-  return <Library collections={COLLECTIONS} />;
+// Collections are fetched from R2. `getAllCollections` prefers a root
+// collections.json index and falls back to the hardcoded COLLECTION_SLUGS.
+export default async function LibraryPage() {
+  const collections = await getAllCollections();
+  return <Library collections={collections} />;
 }

@@ -5,23 +5,34 @@ import { SkipBack, SkipForward, Play, Pause, Volume2, VolumeX } from "lucide-rea
 import { Cover } from "@/components/Cover";
 import { formatTime } from "@/components/player";
 import { usePlayer } from "@/components/player-context";
-import { getAdjacentSlugs } from "@/components/catalog";
 
 // Docked player bar for tablet (md) and desktop (lg). Reflects the shared
 // player; the now-playing area links to the full player.
 export default function PlayerBar() {
-  const { track, isPlaying, position, duration, volume, muted, toggle, seek, setVolume, toggleMuted } =
-    usePlayer();
+  const {
+    track,
+    isPlaying,
+    position,
+    duration,
+    volume,
+    muted,
+    currentHref,
+    prevHref,
+    nextHref,
+    toggle,
+    seek,
+    setVolume,
+    toggleMuted,
+  } = usePlayer();
   if (!track) return null;
 
   const pct = duration ? (position / duration) * 100 : 0;
-  const { prev, next } = getAdjacentSlugs(track.slug);
 
   return (
     <div className="flex h-[84px] shrink-0 items-center gap-4 border-t border-line bg-surface/70 px-4 backdrop-blur-md lg:px-6">
       {/* now playing → opens the full player */}
       <Link
-        href={`/player/${track.slug}`}
+        href={currentHref ?? "#"}
         className="flex w-[34%] min-w-0 items-center gap-3 no-underline lg:w-[30%]"
       >
         <Cover hue={track.hue} className="h-12 w-12 shrink-0 rounded-[10px] shadow-cover" />
@@ -35,10 +46,10 @@ export default function PlayerBar() {
       <div className="flex flex-1 flex-col items-center gap-1.5">
         <div className="flex items-center gap-5 text-text-hi">
           <Link
-            href={prev ? `/player/${prev}` : `/player/${track.slug}`}
+            href={prevHref ?? "#"}
             aria-label="Previous"
-            aria-disabled={!prev}
-            className={`text-text-mid hover:text-text-hi ${prev ? "" : "pointer-events-none opacity-30"}`}
+            aria-disabled={!prevHref}
+            className={`text-text-mid hover:text-text-hi ${prevHref ? "" : "pointer-events-none opacity-30"}`}
           >
             <SkipBack size={20} fill="currentColor" />
           </Link>
@@ -54,10 +65,10 @@ export default function PlayerBar() {
             )}
           </button>
           <Link
-            href={next ? `/player/${next}` : `/player/${track.slug}`}
+            href={nextHref ?? "#"}
             aria-label="Next"
-            aria-disabled={!next}
-            className={`text-text-mid hover:text-text-hi ${next ? "" : "pointer-events-none opacity-30"}`}
+            aria-disabled={!nextHref}
+            className={`text-text-mid hover:text-text-hi ${nextHref ? "" : "pointer-events-none opacity-30"}`}
           >
             <SkipForward size={20} fill="currentColor" />
           </Link>

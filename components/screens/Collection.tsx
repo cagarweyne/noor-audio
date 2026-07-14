@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Heart, ArrowDownToLine, ArrowDownUp, Play } from "lucide-react";
 import { coverGradient } from "@/components/Cover";
 import { formatTime } from "@/components/player";
-import type { Collection, Track } from "@/components/catalog";
+import type { Collection, Track } from "@/types";
 
 type CollectionScreenProps = {
   collection: Collection;
@@ -93,7 +93,7 @@ export default function CollectionScreen({ collection, tracks }: CollectionScree
 
           {first && (
             <Link
-              href={`/player/${first.slug}`}
+              href={`/player/${collection.slug}/${first.slug}`}
               aria-label={`Play ${collection.title}`}
               className="flex h-14 w-14 items-center justify-center rounded-full bg-gold text-ink-contrast shadow-glow"
             >
@@ -107,7 +107,7 @@ export default function CollectionScreen({ collection, tracks }: CollectionScree
           {tracks.map((t, i) => (
             <li key={t.slug}>
               <Link
-                href={`/player/${t.slug}`}
+                href={`/player/${collection.slug}/${t.slug}`}
                 className="flex items-center gap-4 rounded-lg px-2 py-2.5 no-underline transition-colors hover:bg-surface-2"
               >
                 <span className="w-5 shrink-0 text-center text-[13px] tabular-nums text-text-mid">

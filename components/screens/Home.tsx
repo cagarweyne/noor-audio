@@ -1,22 +1,19 @@
-import { User } from 'lucide-react';
-import CoverCard from '@/components/CoverCard';
-import { tracksBySection } from '@/components/catalog';
-
-// Sourced from the shared catalog so each card links to its player view.
-const CONTINUE = tracksBySection('continue');
-const SERIES = tracksBySection('series');
+import { User } from "lucide-react";
+import CoverCard from "@/components/CoverCard";
+import JumpBackIn from "@/components/screens/JumpBackIn";
+import { getAllCollections } from "@/lib/collections";
 
 function Section({ title }: { title: string }) {
   return (
     <div className="mt-7 flex items-baseline justify-between">
-      <h2 className="font-display text-[19px] font-semibold lg:text-[21px]">
-        {title}
-      </h2>
+      <h2 className="font-display text-[19px] font-semibold lg:text-[21px]">{title}</h2>
     </div>
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const collections = await getAllCollections();
+
   return (
     <div className="min-h-full bg-ink-2 text-text-hi">
       <div className="mx-auto w-full max-w-6xl px-5 pb-10 pt-4 md:px-8 lg:px-10">
@@ -29,38 +26,36 @@ export default function Home() {
           <div
             className="flex h-10 w-10 items-center justify-center rounded-full md:hidden"
             style={{
-              backgroundImage:
-                'linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))',
+              backgroundImage: "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
             }}
           >
             <User size={20} className="text-text-hi" strokeWidth={1.8} />
           </div>
         </header>
 
-        <Section title="Jump back in" />
-        <div className="mt-3.5 flex gap-3.5 overflow-x-auto pb-1">
-          {CONTINUE.map((it) => (
-            <CoverCard
-              key={it.slug}
-              item={it}
-              href={`/player/${it.slug}`}
-              size={132}
-              showProgress
-            />
-          ))}
-        </div>
+        <JumpBackIn />
 
-        <Section title="Series" />
-        <div className="mt-3.5 flex gap-3.5 overflow-x-auto pb-1">
-          {SERIES.map((it) => (
-            <CoverCard
-              key={it.slug}
-              item={it}
-              href={`/player/${it.slug}`}
-              size={150}
-            />
-          ))}
-        </div>
+        <Section title="Collections" />
+        {collections.length === 0 ? (
+          <p className="mt-4 text-[13.5px] text-text-mid">
+            No collections available yet.
+          </p>
+        ) : (
+          <div className="mt-3.5 flex flex-wrap gap-3.5">
+            {collections.map((c) => (
+              <CoverCard
+                key={c.slug}
+                item={{
+                  title: c.title,
+                  subtitle: `${c.tracks.length} tracks`,
+                  hue: c.hue,
+                }}
+                href={`/collection/${c.slug}`}
+                size={150}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

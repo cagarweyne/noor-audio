@@ -16,27 +16,29 @@ import {
 import { Cover } from "@/components/Cover";
 import { formatTime } from "@/components/player";
 import { usePlayer } from "@/components/player-context";
-import type { Track } from "@/components/catalog";
+import type { Track } from "@/types";
 
 type PlayerProps = {
   track: Track;
-  prevSlug?: string;
-  nextSlug?: string;
-  backHref?: string; // where the back chevron returns to (the track's collection)
-  collectionLabel?: string;
+  currentHref: string;
+  prevHref?: string;
+  nextHref?: string;
+  backHref: string;
+  collectionLabel: string;
 };
 
 const SPEEDS = [1, 1.5, 2] as const;
 
 // Now Playing view. The audio itself lives in PlayerProvider (so it survives
-// navigation) — this screen just loads the track on mount and drives the
-// shared player. Cover/ayah/title come from the page's own `track` prop.
+// navigation) — this screen loads the track on mount and drives the shared
+// player. Cover/ayah/title come from the page's own `track` prop.
 export default function Player({
   track,
-  prevSlug,
-  nextSlug,
-  backHref = "/library",
-  collectionLabel = track.collection,
+  currentHref,
+  prevHref,
+  nextHref,
+  backHref,
+  collectionLabel,
 }: PlayerProps) {
   const player = usePlayer();
   const scrubRef = useRef<HTMLDivElement>(null);
@@ -48,15 +50,21 @@ export default function Player({
   // Ensure this track is the one playing. If it's already current (e.g. the
   // user tapped the mini-player), leave it be so it keeps playing.
   useEffect(() => {
-    if (player.track?.slug !== track.slug) {
-      player.load(track, { autoplay: true });
+    if (player.track?.audioUrl !== track.audioUrl) {
+      player.load(track, {
+        autoplay: true,
+        currentHref,
+        prevHref,
+        nextHref,
+        backHref,
+        collectionLabel,
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [track.slug]);
+  }, [track.audioUrl]);
 
-  const isCurrent = player.track?.slug === track.slug;
-  const resumeAt = Math.round((track.progress ?? 0) * track.durationSec);
-  const position = isCurrent ? player.position : resumeAt;
+  const isCurrent = player.track?.audioUrl === track.audioUrl;
+  const position = isCurrent ? player.position : 0;
   const duration = isCurrent ? player.duration || track.durationSec : track.durationSec;
   const isPlaying = isCurrent && player.isPlaying;
   const rate = isCurrent ? player.rate : 1;
@@ -181,10 +189,10 @@ export default function Player({
             />
           </button>
           <Link
-            href={prevSlug ? `/player/${prevSlug}` : "#"}
+            href={prevHref ?? "#"}
             aria-label="Previous"
-            aria-disabled={!prevSlug}
-            className={prevSlug ? "" : "pointer-events-none opacity-30"}
+            aria-disabled={!prevHref}
+            className={prevHref ? "" : "pointer-events-none opacity-30"}
           >
             <SkipBack size={30} fill="currentColor" />
           </Link>
@@ -200,10 +208,10 @@ export default function Player({
             )}
           </button>
           <Link
-            href={nextSlug ? `/player/${nextSlug}` : "#"}
+            href={nextHref ?? "#"}
             aria-label="Next"
-            aria-disabled={!nextSlug}
-            className={nextSlug ? "" : "pointer-events-none opacity-30"}
+            aria-disabled={!nextHref}
+            className={nextHref ? "" : "pointer-events-none opacity-30"}
           >
             <SkipForward size={30} fill="currentColor" />
           </Link>

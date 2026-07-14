@@ -9,7 +9,7 @@ import { usePlayer } from "@/components/player-context";
 // Floating mini-player shown above the BottomNav on mobile. Reflects the shared
 // player; tapping it opens the full player, the button toggles play/pause.
 export default function MiniPlayer() {
-  const { track, isPlaying, position, duration, toggle } = usePlayer();
+  const { track, isPlaying, position, duration, currentHref, toggle } = usePlayer();
   const pathname = usePathname();
 
   // Hide on the full player page — it's already the player there.
@@ -19,7 +19,7 @@ export default function MiniPlayer() {
 
   return (
     <Link
-      href={`/player/${track.slug}`}
+      href={currentHref ?? "#"}
       className="relative mx-2 mb-1 flex h-[60px] items-center gap-[11px] rounded-[15px] bg-surface-3 px-3 no-underline shadow-cover"
     >
       <Cover hue={track.hue} className="h-[42px] w-[42px] flex-shrink-0 rounded-[9px]" />
