@@ -6,7 +6,7 @@ import { NAV_ITEMS, navIsActive } from "@/components/navigation";
 
 // Mobile bottom tab bar. Active tab is derived from the current route.
 export default function BottomNav() {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
   return (
     <nav
       className="flex h-[70px] items-start justify-around border-t border-line/50 px-2 pt-2.5 backdrop-blur-md"

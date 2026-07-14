@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import AppLogo from "@/components/AppLogo";
 import { NAV_ITEMS, navIsActive } from "@/components/navigation";
 
@@ -11,7 +12,8 @@ type SideNavProps = {
 
 // Left navigation for tablet (md, icon rail) and desktop (lg, labelled sidebar).
 export default function SideNav({ collections }: SideNavProps) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
+  const { data: session } = useSession();
 
   return (
     <aside className="hidden shrink-0 flex-col border-r border-line bg-ink-2 md:flex md:w-24 lg:w-64">
@@ -66,18 +68,45 @@ export default function SideNav({ collections }: SideNavProps) {
         </ul>
       </div>
 
-      {/* profile */}
-      <div className="mt-auto flex items-center justify-center gap-3 border-t border-line/60 p-4 lg:justify-start lg:px-6">
-        <div
-          className="h-9 w-9 shrink-0 rounded-full"
-          style={{
-            backgroundImage: "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
-          }}
-        />
-        <div className="hidden lg:block">
-          <div className="text-[13px] font-semibold text-text-hi">Guest</div>
-          <div className="text-[11.5px] text-text-mid">Sign in</div>
-        </div>
+      {/* profile / auth */}
+      <div className="mt-auto border-t border-line/60 p-4 lg:px-6">
+        {session?.user ? (
+          <div className="flex items-center gap-3">
+            <div
+              className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center"
+              style={{
+                backgroundImage: session.user.image
+                  ? `url(${session.user.image})`
+                  : "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
+              }}
+            />
+            <div className="hidden min-w-0 flex-1 lg:block">
+              <div className="truncate text-[13px] font-semibold text-text-hi">
+                {session.user.name ?? session.user.email}
+              </div>
+              <button
+                onClick={() => signOut()}
+                className="text-[11.5px] text-text-mid hover:text-text-hi"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        ) : (
+          <Link
+            href="/login"
+            aria-label="Sign in"
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-surface-2 px-3 py-2 text-[12.5px] font-semibold text-text-hi no-underline transition-colors hover:bg-surface-3 lg:justify-start"
+          >
+            <span
+              className="h-6 w-6 shrink-0 rounded-full"
+              style={{
+                backgroundImage: "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
+              }}
+            />
+            <span className="hidden lg:inline">Sign in</span>
+          </Link>
+        )}
       </div>
     </aside>
   );

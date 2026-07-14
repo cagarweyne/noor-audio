@@ -9,6 +9,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import ReactPlayer from "react-player";
 import type { Track } from "@/types";
 import { recordRecentlyPlayed } from "@/lib/recently-played";
@@ -57,6 +59,10 @@ export function usePlayer(): PlayerContextValue {
 // Owns the ONE audio instance for the whole app. Rendered in AppShell (the
 // persistent layout), so audio keeps playing as pages navigate underneath it.
 export function PlayerProvider({ children }: { children: ReactNode }) {
+  const router = useRouter();
+  const { status } = useSession();
+  const isAuthed = status === "authenticated";
+
   const mediaRef = useRef<HTMLVideoElement>(null);
   const desiredStart = useRef(0);
   const didSeek = useRef(false);
@@ -91,10 +97,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     });
     setDuration(next.durationSec);
     setPosition(start);
-    setIsPlaying(opts?.autoplay ?? true);
-  }, []);
+    // Playback requires sign-in — anonymous users load the track for display only.
+    setIsPlaying((opts?.autoplay ?? true) && isAuthed);
+  }, [isAuthed]);
 
-  const toggle = useCallback(() => setIsPlaying((v) => !v), []);
+  // Send unauthenticated users to the login page (returning to the current track).
+  const redirectToLogin = useCallback(() => {
+    const callbackUrl = nav.currentHref ?? "/";
+    router.push(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+  }, [router, nav.currentHref]);
+
+  const toggle = useCallback(() => {
+    // Starting playback is gated; pausing is always allowed.
+    if (!isPlaying && !isAuthed) {
+      redirectToLogin();
+      return;
+    }
+    setIsPlaying((v) => !v);
+  }, [isPlaying, isAuthed, redirectToLogin]);
 
   const seek = useCallback((seconds: number) => {
     const clamped = Math.max(0, seconds);

@@ -1,0 +1,36 @@
+// Prisma schema — mirrors the `cilm` template (custom output + Accelerate),
+// with models adapted for audio playback.
+// Docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // pooled (PgBouncer) — used by the app at runtime
+  directUrl = env("DIRECT_URL") // unpooled — used by Prisma Migrate
+}
+
+model User {
+  id    String @id @default(uuid())
+  name  String
+  email String @unique
+}
+
+// One row per (user, track) — how far a user got in a given track. Powers
+// "Jump back in" and resume. Keyed by email to match the template's approach.
+model TrackProgress {
+  id             String   @id @default(uuid())
+  email          String
+  collectionSlug String
+  trackSlug      String
+  title          String
+  positionSec    Int
+  durationSec    Int
+  updatedAt      DateTime @updatedAt
+
+  @@unique([email, collectionSlug, trackSlug])
+  @@index([email, updatedAt])
+}

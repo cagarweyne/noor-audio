@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import Providers from "@/components/Providers";
 import { PlayerProvider } from "@/components/player-context";
 import SideNav from "@/components/SideNav";
 import PlayerBar from "@/components/PlayerBar";
@@ -17,25 +18,27 @@ export default async function AppShell({ children }: { children: ReactNode }) {
   const libraryLinks = collections.map((c) => ({ slug: c.slug, title: c.title }));
 
   return (
-    <PlayerProvider>
-      <div className="flex h-dvh overflow-hidden bg-ink text-text-hi">
-        <SideNav collections={libraryLinks} />
+    <Providers>
+      <PlayerProvider>
+        <div className="flex h-dvh overflow-hidden bg-ink text-text-hi">
+          <SideNav collections={libraryLinks} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <main className="min-h-0 flex-1 overflow-y-auto">{children}</main>
 
-          {/* mobile chrome: mini-player stacked over the tab bar */}
-          <div className="shrink-0 md:hidden">
-            <MiniPlayer />
-            <BottomNav />
-          </div>
+            {/* mobile chrome: mini-player stacked over the tab bar */}
+            <div className="shrink-0 md:hidden">
+              <MiniPlayer />
+              <BottomNav />
+            </div>
 
-          {/* tablet + desktop chrome: docked player bar */}
-          <div className="hidden md:block">
-            <PlayerBar />
+            {/* tablet + desktop chrome: docked player bar */}
+            <div className="hidden md:block">
+              <PlayerBar />
+            </div>
           </div>
         </div>
-      </div>
-    </PlayerProvider>
+      </PlayerProvider>
+    </Providers>
   );
 }

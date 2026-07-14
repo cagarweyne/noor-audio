@@ -10,7 +10,7 @@ import { usePlayer } from "@/components/player-context";
 // player; tapping it opens the full player, the button toggles play/pause.
 export default function MiniPlayer() {
   const { track, isPlaying, position, duration, currentHref, toggle } = usePlayer();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? "";
 
   // Hide on the full player page — it's already the player there.
   if (!track || pathname.startsWith("/player/")) return null;

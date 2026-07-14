@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import CoverCard from "@/components/CoverCard";
 import { getRecentlyPlayed, type RecentTrack } from "@/lib/recently-played";
 
-// "Continue listening" scroller. Reads local progress on mount (client-only).
-// When the DB + auth land, swap getRecentlyPlayed() for a per-user fetch.
+// "Continue listening" scroller — signed-in view only. Reads local progress on
+// mount (client-only). When DB progress lands, swap getRecentlyPlayed() for a
+// per-user server fetch.
 export default function JumpBackIn() {
+  const { status } = useSession();
   const [items, setItems] = useState<RecentTrack[]>([]);
 
   useEffect(() => {
@@ -17,7 +20,7 @@ export default function JumpBackIn() {
     );
   }, []);
 
-  if (items.length === 0) return null;
+  if (status !== "authenticated" || items.length === 0) return null;
 
   return (
     <section>
