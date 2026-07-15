@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import { LogOut } from "lucide-react";
 import AppLogo from "@/components/AppLogo";
 import { NAV_ITEMS, navIsActive } from "@/components/navigation";
 
@@ -69,29 +70,39 @@ export default function SideNav({ collections }: SideNavProps) {
       </div>
 
       {/* profile / auth */}
-      <div className="mt-auto border-t border-line/60 p-4 lg:px-6">
+      <div className="mt-auto flex flex-col gap-1 border-t border-line/60 p-3 lg:px-4">
         {session?.user ? (
-          <div className="flex items-center gap-3">
-            <div
-              className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center"
-              style={{
-                backgroundImage: session.user.image
-                  ? `url(${session.user.image})`
-                  : "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
-              }}
-            />
-            <div className="hidden min-w-0 flex-1 lg:block">
-              <div className="truncate text-[13px] font-semibold text-text-hi">
-                {session.user.name ?? session.user.email}
+          <>
+            {/* profile → You page */}
+            <Link
+              href="/you"
+              className="flex items-center justify-center gap-3 rounded-lg px-2 py-2 no-underline transition-colors hover:bg-surface-2 lg:justify-start"
+            >
+              <div
+                className="h-9 w-9 shrink-0 rounded-full bg-cover bg-center"
+                style={{
+                  backgroundImage: session.user.image
+                    ? `url(${session.user.image})`
+                    : "linear-gradient(150deg, oklch(0.5 0.08 195), oklch(0.3 0.05 250))",
+                }}
+              />
+              <div className="hidden min-w-0 flex-1 lg:block">
+                <div className="truncate text-[13px] font-semibold text-text-hi">
+                  {session.user.name ?? session.user.email}
+                </div>
+                <div className="truncate text-[11.5px] text-text-mid">View profile</div>
               </div>
-              <button
-                onClick={() => signOut()}
-                className="text-[11.5px] text-text-mid hover:text-text-hi"
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
+            </Link>
+
+            {/* sign out — visible on tablet (icon) and desktop (icon + label) */}
+            <button
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="flex flex-col items-center gap-1 rounded-lg px-3 py-2.5 text-text-mid transition-colors hover:bg-surface-2 hover:text-text-hi lg:flex-row lg:gap-3"
+            >
+              <LogOut size={22} strokeWidth={1.8} />
+              <span className="text-[10.5px] font-semibold lg:text-sm lg:font-medium">Sign out</span>
+            </button>
+          </>
         ) : (
           <Link
             href="/login"
