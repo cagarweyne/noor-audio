@@ -10,6 +10,8 @@ import {
   SkipForward,
   Play,
   Pause,
+  RotateCcw,
+  RotateCw,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -74,6 +76,11 @@ export default function Player({
   const volume = player.volume;
   const muted = player.muted;
   const pct = duration ? (position / duration) * 100 : 0;
+
+  // Skip forward/back by `delta` seconds, clamped to the track.
+  const skip = (delta: number) => {
+    player.seek(Math.min(Math.max(0, position + delta), duration));
+  };
 
   const onScrubClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = scrubRef.current;
@@ -179,14 +186,14 @@ export default function Player({
         </div>
 
         {/* transport */}
-        <div className="mt-4 flex items-center justify-center gap-6">
+        <div className="mt-4 flex items-center justify-center gap-4">
           <button
             aria-label="Shuffle"
             aria-pressed={shuffle}
             onClick={() => setShuffle((v) => !v)}
           >
             <Shuffle
-              size={22}
+              size={20}
               className={shuffle ? "text-gold" : "text-white/85"}
               strokeWidth={1.8}
             />
@@ -197,8 +204,18 @@ export default function Player({
             aria-disabled={!prevHref}
             className={prevHref ? "" : "pointer-events-none opacity-30"}
           >
-            <SkipBack size={30} fill="currentColor" />
+            <SkipBack size={26} fill="currentColor" />
           </Link>
+          <button
+            aria-label="Back 10 seconds"
+            onClick={() => skip(-10)}
+            className="relative text-white/90 hover:text-text-hi"
+          >
+            <RotateCcw size={27} strokeWidth={1.8} />
+            <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold">
+              10
+            </span>
+          </button>
           <button
             onClick={player.toggle}
             aria-label={isPlaying ? "Pause" : "Play"}
@@ -210,13 +227,23 @@ export default function Player({
               <Play size={30} className="ml-1 text-ink-contrast" fill="currentColor" />
             )}
           </button>
+          <button
+            aria-label="Forward 10 seconds"
+            onClick={() => skip(10)}
+            className="relative text-white/90 hover:text-text-hi"
+          >
+            <RotateCw size={27} strokeWidth={1.8} />
+            <span className="absolute inset-0 flex items-center justify-center text-[8px] font-bold">
+              10
+            </span>
+          </button>
           <Link
             href={nextHref ?? "#"}
             aria-label="Next"
             aria-disabled={!nextHref}
             className={nextHref ? "" : "pointer-events-none opacity-30"}
           >
-            <SkipForward size={30} fill="currentColor" />
+            <SkipForward size={26} fill="currentColor" />
           </Link>
         </div>
 
