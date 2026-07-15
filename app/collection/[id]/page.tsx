@@ -1,12 +1,9 @@
 import { notFound } from "next/navigation";
 import CollectionScreen from "@/components/screens/Collection";
-import { getCollection, getCollectionSlugs } from "@/lib/collections";
+import { getCollection } from "@/lib/collections";
 
-// Prebuild the known collections; others render on demand.
-export async function generateStaticParams() {
-  const slugs = await getCollectionSlugs();
-  return slugs.map((id) => ({ id }));
-}
+// Rendered at request time (data comes from R2, not baked at build).
+export const dynamic = "force-dynamic";
 
 export default async function CollectionPage({
   params,

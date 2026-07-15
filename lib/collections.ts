@@ -13,6 +13,7 @@ export const COLLECTION_SLUGS = ["silsilat-al-tatar"];
 export async function getCollection(slug: string): Promise<CollectionWithTracks> {
   const res = await fetch(`${BASE}/${slug}/collection.json`, {
     next: { revalidate: 300 }, // matches the 5-min cache header on the JSON
+    signal: AbortSignal.timeout(8000), // never hang a build/request on a slow R2
   });
 
   if (!res.ok) throw new Error(`Collection not found: ${slug}`);
@@ -33,7 +34,10 @@ export async function getCollection(slug: string): Promise<CollectionWithTracks>
 // back to the hardcoded COLLECTION_SLUGS above.
 export async function getCollectionSlugs(): Promise<string[]> {
   try {
-    const res = await fetch(`${BASE}/collections.json`, { next: { revalidate: 300 } });
+    const res = await fetch(`${BASE}/collections.json`, {
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(8000),
+    });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length) return data as string[];
