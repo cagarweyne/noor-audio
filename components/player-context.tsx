@@ -13,12 +13,6 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import ReactPlayer from "react-player";
 import type { Track } from "@/types";
-import { recordRecentlyPlayed } from "@/lib/recently-played";
-
-// Persisted resume position, keyed by the (unique) audio URL so tracks that
-// share a slug across collections don't collide.
-const trackId = (t: Track) => t.audioUrl ?? t.slug;
-const posKey = (t: Track) => `noor-player-pos:${trackId(t)}`;
 
 // Navigation context for a loaded track — lets the mini-player / player bar
 // link to the full player and step through the collection without knowing it.
@@ -30,7 +24,7 @@ type NavContext = {
   collectionLabel?: string;
 };
 
-type LoadOpts = NavContext & { autoplay?: boolean };
+type LoadOpts = NavContext & { autoplay?: boolean; initialPositionSec?: number };
 
 type PlayerContextValue = NavContext & {
   track: Track | null;
@@ -66,6 +60,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const mediaRef = useRef<HTMLVideoElement>(null);
   const desiredStart = useRef(0);
   const didSeek = useRef(false);
+  const saveProgressRef = useRef<() => void>(() => {});
 
   const [track, setTrack] = useState<Track | null>(null);
   const [nav, setNav] = useState<NavContext>({});
@@ -77,14 +72,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [muted, setMuted] = useState(false);
 
   const load = useCallback((next: Track, opts?: LoadOpts) => {
-    // Resume point: saved position (localStorage) wins over catalog progress.
-    let start = Math.round((next.progress ?? 0) * next.durationSec);
-    try {
-      const saved = Number(localStorage.getItem(posKey(next)));
-      if (Number.isFinite(saved) && saved > 0) start = saved;
-    } catch {
-      /* localStorage unavailable — fall back to catalog resume */
-    }
+    saveProgressRef.current(); // persist the outgoing track before switching
+    // Resume point: the DB position (passed by the player page) wins; otherwise
+    // the catalog's progress hint.
+    const start =
+      opts?.initialPositionSec && opts.initialPositionSec > 0
+        ? opts.initialPositionSec
+        : Math.round((next.progress ?? 0) * next.durationSec);
     desiredStart.current = start;
     didSeek.current = false;
     setTrack(next);
@@ -140,26 +134,52 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     el.currentTime = Math.min(desiredStart.current, Math.max(0, dur - 1));
   }, []);
 
-  // Persist position (once per second) + update the "continue listening" list.
+  // Latest state for the save function (avoids stale closures inside intervals).
+  const latest = useRef({ track, position, duration, isAuthed });
   useEffect(() => {
-    if (!track) return;
-    try {
-      localStorage.setItem(posKey(track), String(position));
-    } catch {
-      /* ignore */
-    }
-    if (nav.currentHref) {
-      recordRecentlyPlayed({
-        href: nav.currentHref,
-        title: track.title,
-        meta: track.meta,
-        hue: track.hue,
-        positionSec: position,
-        durationSec: duration || track.durationSec,
-        updatedAt: Date.now(),
-      });
-    }
-  }, [track, position, duration, nav.currentHref]);
+    latest.current = { track, position, duration, isAuthed };
+  });
+
+  // Persist the signed-in user's position to the DB (POST /api/progress).
+  const saveProgress = useCallback(() => {
+    const { track: t, position: pos, duration: dur, isAuthed: authed } = latest.current;
+    if (!authed || !t || pos <= 0) return;
+    fetch("/api/progress", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        collectionSlug: t.collection,
+        trackSlug: t.slug,
+        title: t.title,
+        hue: t.hue,
+        positionSec: Math.floor(pos),
+        durationSec: Math.floor(dur || t.durationSec),
+      }),
+      keepalive: true, // survive the request across a page unload
+    }).catch(() => {});
+  }, []);
+  saveProgressRef.current = saveProgress;
+
+  // Event-driven saves only (no periodic writes): save whenever playback stops
+  // (pause / track end). Track switches are saved by load(); tab hide/close below.
+  const wasPlaying = useRef(false);
+  useEffect(() => {
+    if (wasPlaying.current && !isPlaying) saveProgress();
+    wasPlaying.current = isPlaying;
+  }, [isPlaying, saveProgress]);
+
+  // Save when the tab is hidden or closed (covers mobile backgrounding).
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") saveProgress();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    window.addEventListener("pagehide", saveProgress);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      window.removeEventListener("pagehide", saveProgress);
+    };
+  }, [saveProgress]);
 
   // Drive play/pause imperatively (instead of react-player's `playing` prop) so
   // we can swallow the harmless AbortError thrown when the source swaps or the

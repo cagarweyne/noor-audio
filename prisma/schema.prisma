@@ -27,6 +27,7 @@ model TrackProgress {
   collectionSlug String
   trackSlug      String
   title          String
+  hue            Int      @default(210)
   positionSec    Int
   durationSec    Int
   updatedAt      DateTime @updatedAt

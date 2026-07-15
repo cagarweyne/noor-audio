@@ -5,6 +5,7 @@ export type SaveProgressInput = {
   collectionSlug: string;
   trackSlug: string;
   title: string;
+  hue: number;
   positionSec: number;
   durationSec: number;
 };
@@ -22,8 +23,22 @@ export async function saveTrackProgress(input: SaveProgressInput) {
     create: input,
     update: {
       title: input.title,
+      hue: input.hue,
       positionSec: input.positionSec,
       durationSec: input.durationSec,
+    },
+  });
+}
+
+// A single track's saved position (for resume on the player page).
+export async function getTrackProgress(
+  email: string,
+  collectionSlug: string,
+  trackSlug: string,
+) {
+  return prisma.trackProgress.findUnique({
+    where: {
+      email_collectionSlug_trackSlug: { email, collectionSlug, trackSlug },
     },
   });
 }

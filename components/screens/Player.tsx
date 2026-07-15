@@ -25,6 +25,7 @@ type PlayerProps = {
   nextHref?: string;
   backHref: string;
   collectionLabel: string;
+  initialPositionSec?: number; // resume point from the DB (signed-in users)
 };
 
 const SPEEDS = [1, 1.5, 2] as const;
@@ -39,6 +40,7 @@ export default function Player({
   nextHref,
   backHref,
   collectionLabel,
+  initialPositionSec,
 }: PlayerProps) {
   const player = usePlayer();
   const scrubRef = useRef<HTMLDivElement>(null);
@@ -58,6 +60,7 @@ export default function Player({
         nextHref,
         backHref,
         collectionLabel,
+        initialPositionSec,
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

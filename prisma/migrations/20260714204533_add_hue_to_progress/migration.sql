@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "TrackProgress" ADD COLUMN     "hue" INTEGER NOT NULL DEFAULT 210;
