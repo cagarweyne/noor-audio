@@ -19,8 +19,9 @@ model User {
   email String @unique
 }
 
-// One row per (user, track) — how far a user got in a given track. Powers
-// "Jump back in" and resume. Keyed by email to match the template's approach.
+// One row per (user, collection) — the single track a user is currently on in
+// that collection, and how far in. Playing a different track in the same
+// collection overwrites this row. Powers "Jump back in" and resume.
 model TrackProgress {
   id             String   @id @default(uuid())
   email          String
@@ -32,6 +33,6 @@ model TrackProgress {
   durationSec    Int
   updatedAt      DateTime @updatedAt
 
-  @@unique([email, collectionSlug, trackSlug])
+  @@unique([email, collectionSlug])
   @@index([email, updatedAt])
 }

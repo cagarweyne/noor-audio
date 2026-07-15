@@ -10,18 +10,19 @@ export type SaveProgressInput = {
   durationSec: number;
 };
 
-// Upsert how far a user got in a track (one row per user+track).
+// Upsert the user's position in a collection (one row per collection). Playing a
+// different track in the same collection overwrites which track is tracked.
 export async function saveTrackProgress(input: SaveProgressInput) {
   return prisma.trackProgress.upsert({
     where: {
-      email_collectionSlug_trackSlug: {
+      email_collectionSlug: {
         email: input.email,
         collectionSlug: input.collectionSlug,
-        trackSlug: input.trackSlug,
       },
     },
     create: input,
     update: {
+      trackSlug: input.trackSlug,
       title: input.title,
       hue: input.hue,
       positionSec: input.positionSec,
@@ -30,17 +31,17 @@ export async function saveTrackProgress(input: SaveProgressInput) {
   });
 }
 
-// A single track's saved position (for resume on the player page).
+// The saved position for resuming a track — only if it's the collection's
+// currently-tracked track (opening any other track starts fresh).
 export async function getTrackProgress(
   email: string,
   collectionSlug: string,
   trackSlug: string,
 ) {
-  return prisma.trackProgress.findUnique({
-    where: {
-      email_collectionSlug_trackSlug: { email, collectionSlug, trackSlug },
-    },
+  const row = await prisma.trackProgress.findUnique({
+    where: { email_collectionSlug: { email, collectionSlug } },
   });
+  return row && row.trackSlug === trackSlug ? row : null;
 }
 
 // Most-recent in-progress tracks for a user — powers "Jump back in".
