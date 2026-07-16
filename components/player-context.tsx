@@ -11,7 +11,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import ReactPlayer from "react-player";
 import type { Track } from "@/types";
 
 // Navigation context for a loaded track — lets the mini-player / player bar
@@ -57,7 +56,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const { status } = useSession();
   const isAuthed = status === "authenticated";
 
-  const mediaRef = useRef<HTMLVideoElement>(null);
+  const mediaRef = useRef<HTMLAudioElement>(null);
   const desiredStart = useRef(0);
   const didSeek = useRef(false);
   const saveProgressRef = useRef<() => void>(() => {});
@@ -181,9 +180,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [saveProgress]);
 
-  // Drive play/pause imperatively (instead of react-player's `playing` prop) so
-  // we can swallow the harmless AbortError thrown when the source swaps or the
-  // user toggles while a play() request is still pending.
+  // Drive play/pause imperatively so we can swallow the harmless AbortError
+  // thrown when the source swaps or the user toggles while a play() request is
+  // still pending.
   useEffect(() => {
     const el = mediaRef.current;
     if (!el) return;
@@ -200,6 +199,28 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       el.pause();
     }
   }, [isPlaying, track?.audioUrl]);
+
+  // Keep playback rate and volume synced to the element.
+  useEffect(() => {
+    if (mediaRef.current) mediaRef.current.playbackRate = rate;
+  }, [rate]);
+  useEffect(() => {
+    if (mediaRef.current) mediaRef.current.volume = muted ? 0 : volume;
+  }, [muted, volume]);
+
+  // Track position by polling the live element while playing. Reading the
+  // persistent element directly (rather than relying on `timeupdate` events)
+  // keeps the counter moving across page navigations.
+  useEffect(() => {
+    if (!isPlaying) return;
+    const id = setInterval(() => {
+      const el = mediaRef.current;
+      if (!el) return;
+      const t = Math.floor(el.currentTime);
+      setPosition((prev) => (t !== prev ? t : prev));
+    }, 500);
+    return () => clearInterval(id);
+  }, [isPlaying]);
 
   const value: PlayerContextValue = {
     track,
@@ -221,24 +242,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   return (
     <PlayerContext.Provider value={value}>
       {track?.audioUrl && (
-        <ReactPlayer
+        <audio
           ref={mediaRef}
           src={track.audioUrl}
-          playbackRate={rate}
-          volume={muted ? 0 : volume}
-          controls={false}
-          onReady={applyStartSeek}
+          preload="metadata"
           onLoadedMetadata={(e) => {
-            const el = e.currentTarget as HTMLMediaElement;
+            const el = e.currentTarget;
+            el.playbackRate = rate;
+            el.volume = muted ? 0 : volume;
             if (Number.isFinite(el.duration)) setDuration(Math.floor(el.duration));
             applyStartSeek();
           }}
-          onTimeUpdate={(e) => {
-            const t = Math.floor((e.currentTarget as HTMLMediaElement).currentTime);
-            setPosition((prev) => (t !== prev ? t : prev));
-          }}
           onEnded={() => setIsPlaying(false)}
-          style={{ display: "none" }}
+          className="hidden"
         />
       )}
       {children}
