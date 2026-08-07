@@ -1,19 +1,23 @@
 import { notFound } from "next/navigation";
 import { getServerSession } from "next-auth";
 import Player from "@/components/screens/Player";
-import { getCollection } from "@/lib/collections";
+import { resolveCollection } from "@/lib/library";
 import { getTrackProgress } from "@/lib/progress";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
-// Streams from R2. Dynamic (fetched per request, cached 5 min via the fetch).
+// Streams from R2 (curated) or the DB (user uploads). Dynamic per request.
+export const dynamic = "force-dynamic";
+
 export default async function PlayerPage({
   params,
 }: {
   params: Promise<{ collection: string; track: string }>;
 }) {
   const { collection: collectionSlug, track: trackSlug } = await params;
+  const session = await getServerSession(authOptions);
+  const email = session?.user?.email ?? null;
 
-  const collection = await getCollection(collectionSlug).catch(() => null);
+  const collection = await resolveCollection(collectionSlug, email);
   if (!collection) notFound();
 
   const idx = collection.tracks.findIndex((t) => t.slug === trackSlug);
@@ -25,10 +29,9 @@ export default async function PlayerPage({
   const href = (t: { slug: string }) => `/player/${collectionSlug}/${t.slug}`;
 
   // Resume from the signed-in user's saved DB position, if any.
-  const session = await getServerSession(authOptions);
   let initialPositionSec: number | undefined;
-  if (session?.user?.email) {
-    const saved = await getTrackProgress(session.user.email, collectionSlug, trackSlug);
+  if (email) {
+    const saved = await getTrackProgress(email, collectionSlug, trackSlug);
     if (saved) initialPositionSec = saved.positionSec;
   }
 

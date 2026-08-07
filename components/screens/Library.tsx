@@ -55,7 +55,15 @@ function Row({
   );
 }
 
-export default function Library({ collections }: { collections: Collection[] }) {
+type UserCollection = { id: string; title: string; trackCount: number; hue: number };
+
+export default function Library({
+  collections,
+  userCollections = [],
+}: {
+  collections: Collection[];
+  userCollections?: UserCollection[];
+}) {
   const [filter, setFilter] = useState<Filter>("All");
 
   const showDownloads = filter === "All" || filter === "Downloads";
@@ -136,21 +144,45 @@ export default function Library({ collections }: { collections: Collection[] }) 
             />
           )}
 
-          {showCollections &&
-            collections.map((c) => (
-              <Row
-                key={c.slug}
-                href={`/collection/${c.slug}`}
-                tile={
-                  <div
-                    className="h-14 w-14 shrink-0 rounded-card"
-                    style={coverGradient(c.hue)}
-                  />
-                }
-                title={c.title}
-                subtitle={`Collection · ${c.trackSlugs.length} tracks`}
-              />
-            ))}
+          {showCollections && userCollections.length > 0 && (
+            <>
+              <div className="mt-4 mb-1 px-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-low">
+                Your uploads
+              </div>
+              {userCollections.map((c) => (
+                <Row
+                  key={c.id}
+                  href={`/collection/${c.id}`}
+                  tile={
+                    <div className="h-14 w-14 shrink-0 rounded-card" style={coverGradient(c.hue)} />
+                  }
+                  title={c.title}
+                  subtitle={`Your upload · ${c.trackCount} track${c.trackCount === 1 ? "" : "s"}`}
+                />
+              ))}
+            </>
+          )}
+
+          {showCollections && collections.length > 0 && (
+            <>
+              {userCollections.length > 0 && (
+                <div className="mt-4 mb-1 px-2 font-mono text-[10.5px] uppercase tracking-[0.12em] text-text-low">
+                  Curated
+                </div>
+              )}
+              {collections.map((c) => (
+                <Row
+                  key={c.slug}
+                  href={`/collection/${c.slug}`}
+                  tile={
+                    <div className="h-14 w-14 shrink-0 rounded-card" style={coverGradient(c.hue)} />
+                  }
+                  title={c.title}
+                  subtitle={`Collection · ${c.trackSlugs.length} tracks`}
+                />
+              ))}
+            </>
+          )}
 
           {showReciters && (
             <div className="mt-10 text-center text-[13px] text-text-mid">

@@ -1,7 +1,11 @@
 import { User } from "lucide-react";
+import { getServerSession } from "next-auth";
 import CoverCard from "@/components/CoverCard";
 import JumpBackIn from "@/components/screens/JumpBackIn";
 import { getAllCollections } from "@/lib/collections";
+import { listUserCollections } from "@/lib/library";
+import prisma from "@/lib/prisma";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
 function Section({ title }: { title: string }) {
   return (
@@ -13,6 +17,13 @@ function Section({ title }: { title: string }) {
 
 export default async function Home() {
   const collections = await getAllCollections();
+
+  const session = await getServerSession(authOptions);
+  let userCollections: { id: string; title: string; trackCount: number; hue: number }[] = [];
+  if (session?.user?.email) {
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (user) userCollections = await listUserCollections(user.id);
+  }
 
   return (
     <div className="min-h-full bg-ink-2 text-text-hi">
@@ -34,6 +45,26 @@ export default async function Home() {
         </header>
 
         <JumpBackIn />
+
+        {userCollections.length > 0 && (
+          <>
+            <Section title="Your uploads" />
+            <div className="mt-3.5 flex flex-wrap gap-3.5">
+              {userCollections.map((c) => (
+                <CoverCard
+                  key={c.id}
+                  item={{
+                    title: c.title,
+                    subtitle: `${c.trackCount} track${c.trackCount === 1 ? "" : "s"}`,
+                    hue: c.hue,
+                  }}
+                  href={`/collection/${c.id}`}
+                  size={150}
+                />
+              ))}
+            </div>
+          </>
+        )}
 
         <Section title="Collections" />
         {collections.length === 0 ? (

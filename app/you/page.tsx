@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { getContinueListening } from "@/lib/progress";
-import { getCollection } from "@/lib/collections";
+import { resolveCollection } from "@/lib/library";
 import YouScreen, { type ProgressItem } from "@/components/screens/You";
 
 export const metadata = { title: "You — Noor" };
@@ -11,11 +11,12 @@ export default async function YouPage() {
 
   let progress: ProgressItem[] = [];
   if (session?.user?.email) {
-    const rows = await getContinueListening(session.user.email);
-    // Enrich each row with the collection's real title (from R2), cached.
+    const email = session.user.email;
+    const rows = await getContinueListening(email);
+    // Enrich each row with the collection's real title (curated R2 or user DB).
     progress = await Promise.all(
       rows.map(async (r) => {
-        const collection = await getCollection(r.collectionSlug).catch(() => null);
+        const collection = await resolveCollection(r.collectionSlug, email).catch(() => null);
         return {
           collectionSlug: r.collectionSlug,
           collectionTitle: collection?.title ?? r.collectionSlug,

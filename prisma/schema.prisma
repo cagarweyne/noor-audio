@@ -21,6 +21,41 @@ model User {
   email String @unique
 }
 
+// User-created collections (uploaded audio). Named UserCollection/UserTrack to
+// avoid colliding with the curated `Collection`/`Track` types in @/types.
+// The collection title lives here only (not copied onto each track), so a
+// rename is a single update; the relation pulls the name in.
+model UserCollection {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  tracks      UserTrack[]
+
+  @@index([userId])
+}
+
+model UserTrack {
+  id           String   @id @default(cuid())
+  userId       String
+  collectionId String
+  title        String
+  storageKey   String // R2 object key, e.g. users/{userId}/{uuid}.mp3
+  durationSec  Int
+  sizeBytes    Int // for per-user quota
+  position     Int // ordering within the collection
+  createdAt    DateTime @default(now())
+
+  // Cascade deletes the DB rows — R2 objects must be deleted separately
+  // (loop over storageKey) before removing the collection.
+  collection   UserCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([collectionId])
+}
+
 // One row per (user, collection) — the single track a user is currently on in
 // that collection, and how far in. Playing a different track in the same
 // collection overwrites this row. Powers "Jump back in" and resume.

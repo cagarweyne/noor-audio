@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { LogOut, ChevronRight } from "lucide-react";
+import { LogOut, ChevronRight, Upload } from "lucide-react";
 import { coverGradient } from "@/components/Cover";
 import { formatTime } from "@/components/player";
 
@@ -64,6 +64,21 @@ export default function YouScreen({
             {user.email && <div className="truncate text-[13px] text-text-mid">{user.email}</div>}
           </div>
         </div>
+
+        {/* upload entry point */}
+        <Link
+          href="/upload"
+          className="mt-4 flex items-center gap-3 rounded-cover border border-line bg-surface p-4 no-underline transition-colors hover:bg-surface-2"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-2 text-gold-accent">
+            <Upload size={20} strokeWidth={1.9} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[14.5px] font-semibold text-text-hi">Upload audio</div>
+            <div className="text-[12.5px] text-text-mid">Add your own MP3s to a collection</div>
+          </div>
+          <ChevronRight size={18} className="shrink-0 text-text-mid" />
+        </Link>
 
         {/* continue listening — one entry per collection you've played */}
         <h2 className="mt-8 font-display text-[19px] font-semibold lg:text-[21px]">
