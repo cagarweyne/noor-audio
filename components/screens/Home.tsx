@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import CoverCard from "@/components/CoverCard";
 import JumpBackIn from "@/components/screens/JumpBackIn";
 import { getAllCollections } from "@/lib/collections";
-import { listUserCollections } from "@/lib/library";
+import { listUserCollections, getPublicCollections } from "@/lib/library";
 import prisma from "@/lib/prisma";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 
@@ -20,10 +20,17 @@ export default async function Home() {
 
   const session = await getServerSession(authOptions);
   let userCollections: { id: string; title: string; trackCount: number; hue: number }[] = [];
+  let userId: string | undefined;
   if (session?.user?.email) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (user) userCollections = await listUserCollections(user.id);
+    if (user) {
+      userId = user.id;
+      userCollections = await listUserCollections(user.id);
+    }
   }
+
+  // Public uploads from everyone (excluding the viewer's own — those show above).
+  const community = await getPublicCollections(userId);
 
   return (
     <div className="min-h-full bg-ink-2 text-text-hi">
@@ -86,6 +93,26 @@ export default async function Home() {
               />
             ))}
           </div>
+        )}
+
+        {community.length > 0 && (
+          <>
+            <Section title="From the community" />
+            <div className="mt-3.5 flex flex-wrap gap-3.5">
+              {community.map((c) => (
+                <CoverCard
+                  key={c.id}
+                  item={{
+                    title: c.title,
+                    subtitle: `by ${c.uploader}`,
+                    hue: c.hue,
+                  }}
+                  href={`/collection/${c.id}`}
+                  size={150}
+                />
+              ))}
+            </div>
+          </>
         )}
       </div>
     </div>

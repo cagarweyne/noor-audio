@@ -17,8 +17,9 @@ export default async function PlayerPage({
   const session = await getServerSession(authOptions);
   const email = session?.user?.email ?? null;
 
-  const collection = await resolveCollection(collectionSlug, email);
-  if (!collection) notFound();
+  const resolved = await resolveCollection(collectionSlug, email);
+  if (!resolved) notFound();
+  const collection = resolved.collection;
 
   const idx = collection.tracks.findIndex((t) => t.slug === trackSlug);
   if (idx === -1) notFound();

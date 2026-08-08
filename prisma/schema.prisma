@@ -30,6 +30,7 @@ model UserCollection {
   userId      String
   title       String
   description String   @default("")
+  isPublic    Boolean  @default(false) // when true, anyone can view/play it
   createdAt   DateTime @default(now())
 
   tracks      UserTrack[]

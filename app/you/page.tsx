@@ -16,10 +16,10 @@ export default async function YouPage() {
     // Enrich each row with the collection's real title (curated R2 or user DB).
     progress = await Promise.all(
       rows.map(async (r) => {
-        const collection = await resolveCollection(r.collectionSlug, email).catch(() => null);
+        const resolved = await resolveCollection(r.collectionSlug, email).catch(() => null);
         return {
           collectionSlug: r.collectionSlug,
-          collectionTitle: collection?.title ?? r.collectionSlug,
+          collectionTitle: resolved?.collection.title ?? r.collectionSlug,
           trackSlug: r.trackSlug,
           trackTitle: r.title,
           hue: r.hue,

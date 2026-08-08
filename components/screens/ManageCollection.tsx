@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { ChevronLeft, Trash2, Loader2, Check } from "lucide-react";
+import { ChevronLeft, Trash2, Loader2, Check, Globe, Lock } from "lucide-react";
 import { formatTime } from "@/components/player";
 import {
   renameUserCollection,
   renameUserTrack,
   deleteUserTrack,
   deleteUserCollection,
+  setUserCollectionVisibility,
 } from "@/app/collection/actions";
 
 type TrackRow = { id: string; title: string; durationSec: number };
@@ -16,18 +17,34 @@ type TrackRow = { id: string; title: string; durationSec: number };
 export default function ManageCollection({
   id,
   title: initialTitle,
+  isPublic: initialIsPublic,
   tracks: initialTracks,
 }: {
   id: string;
   title: string;
+  isPublic: boolean;
   tracks: TrackRow[];
 }) {
   const [title, setTitle] = useState(initialTitle);
+  const [isPublic, setIsPublic] = useState(initialIsPublic);
   const [tracks, setTracks] = useState(initialTracks);
   const [savedTitle, setSavedTitle] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [savingTitle, startSaveTitle] = useTransition();
+  const [savingVis, startSaveVis] = useTransition();
   const [pending, startTransition] = useTransition();
+
+  const toggleVisibility = () => {
+    const next = !isPublic;
+    setIsPublic(next); // optimistic
+    startSaveVis(async () => {
+      try {
+        await setUserCollectionVisibility(id, next);
+      } catch {
+        setIsPublic(!next); // revert on failure
+      }
+    });
+  };
 
   const saveTitle = () =>
     startSaveTitle(async () => {
@@ -92,6 +109,41 @@ export default function ManageCollection({
               <Check size={16} />
             ) : null}
             Save
+          </button>
+        </div>
+
+        {/* visibility */}
+        <div className="mt-6 flex items-center justify-between rounded-cover border border-line bg-surface p-4">
+          <div className="min-w-0 pr-4">
+            <div className="flex items-center gap-2 text-[14px] font-semibold text-text-hi">
+              {isPublic ? (
+                <Globe size={16} className="text-gold-accent" />
+              ) : (
+                <Lock size={16} />
+              )}
+              {isPublic ? "Public" : "Private"}
+            </div>
+            <div className="mt-0.5 text-[12.5px] leading-relaxed text-text-mid">
+              {isPublic
+                ? "Anyone with the link can view and play this collection."
+                : "Only you can see this collection."}
+            </div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={isPublic}
+            aria-label="Toggle public"
+            onClick={toggleVisibility}
+            disabled={savingVis}
+            className={`inline-flex h-6 w-11 shrink-0 items-center rounded-full px-0.5 transition-colors disabled:opacity-60 ${
+              isPublic ? "bg-gold" : "bg-surface-2"
+            }`}
+          >
+            <span
+              className={`h-5 w-5 rounded-full bg-white transition-transform ${
+                isPublic ? "translate-x-5" : "translate-x-0"
+              }`}
+            />
           </button>
         </div>
 

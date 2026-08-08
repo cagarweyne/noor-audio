@@ -22,6 +22,19 @@ export async function renameUserCollection(id: string, title: string) {
   revalidatePath("/");
 }
 
+// Make a collection public (anyone can view/play) or private (owner only).
+export async function setUserCollectionVisibility(id: string, isPublic: boolean) {
+  const user = await requireUser();
+  const owned = await prisma.userCollection.findFirst({ where: { id, userId: user.id } });
+  if (!owned) throw new Error("Collection not found");
+
+  await prisma.userCollection.update({ where: { id }, data: { isPublic } });
+  revalidatePath(`/collection/${id}/manage`);
+  revalidatePath(`/collection/${id}`);
+  revalidatePath("/library");
+  revalidatePath("/");
+}
+
 // Rename a single track.
 export async function renameUserTrack(id: string, title: string) {
   const user = await requireUser();

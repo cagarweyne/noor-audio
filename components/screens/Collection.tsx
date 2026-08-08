@@ -11,9 +11,17 @@ type CollectionScreenProps = {
   collection: Collection;
   tracks: Track[];
   editable?: boolean; // true when this is the viewer's own upload
+  isPublic?: boolean; // visibility of a user collection (undefined for curated)
+  uploaderName?: string; // who uploaded it (user collections only)
 };
 
-export default function CollectionScreen({ collection, tracks, editable }: CollectionScreenProps) {
+export default function CollectionScreen({
+  collection,
+  tracks,
+  editable,
+  isPublic,
+  uploaderName,
+}: CollectionScreenProps) {
   const [isLiked, setIsLiked] = useState(false);
   const [downloaded, setDownloaded] = useState(false);
   const first = tracks[0];
@@ -38,13 +46,24 @@ export default function CollectionScreen({ collection, tracks, editable }: Colle
             <ChevronLeft size={22} />
           </Link>
           {editable && (
-            <Link
-              href={`/collection/${collection.slug}/manage`}
-              className="flex items-center gap-1.5 rounded-full bg-black/25 px-3 py-2 text-[12.5px] font-semibold text-text-hi no-underline backdrop-blur hover:bg-black/40"
-            >
-              <Settings2 size={16} />
-              Manage
-            </Link>
+            <div className="flex items-center gap-2">
+              {isPublic !== undefined && (
+                <span
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                    isPublic ? "bg-gold/20 text-gold-accent" : "bg-black/25 text-text-mid backdrop-blur"
+                  }`}
+                >
+                  {isPublic ? "Public" : "Private"}
+                </span>
+              )}
+              <Link
+                href={`/collection/${collection.slug}/manage`}
+                className="flex items-center gap-1.5 rounded-full bg-black/25 px-3 py-2 text-[12.5px] font-semibold text-text-hi no-underline backdrop-blur hover:bg-black/40"
+              >
+                <Settings2 size={16} />
+                Manage
+              </Link>
+            </div>
           )}
         </div>
 
@@ -65,9 +84,14 @@ export default function CollectionScreen({ collection, tracks, editable }: Colle
               {collection.arabicTitle}
             </div>
           )}
-          <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-text-mid">
-            {collection.description}
-          </p>
+          {uploaderName && (
+            <div className="mt-1 text-[13px] font-semibold text-gold-accent">by {uploaderName}</div>
+          )}
+          {collection.description && (
+            <p className="mt-2 max-w-md text-[13.5px] leading-relaxed text-text-mid">
+              {collection.description}
+            </p>
+          )}
         </div>
 
         {/* action row */}

@@ -26,6 +26,7 @@ export default async function ManagePage({ params }: { params: Promise<{ id: str
     <ManageCollection
       id={collection.id}
       title={collection.title}
+      isPublic={collection.isPublic}
       tracks={collection.tracks.map((t) => ({
         id: t.id,
         title: t.title,

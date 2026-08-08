@@ -6,10 +6,9 @@ import type { UserCollection, UserTrack } from "@/generated/prisma";
 
 const BASE = process.env.NEXT_PUBLIC_AUDIO_BASE_URL!;
 
-// The `kind` marker on a normalized user collection. Also used by the collection
-// screen to know a collection is the viewer's own (resolveCollection only
-// returns user collections to their owner), so it can offer management.
-export const USER_COLLECTION_KIND = "Your upload";
+// Eyebrow label shown for a normalized user collection (neutral, since public
+// ones are seen by other users too — ownership is conveyed via the badge).
+export const USER_COLLECTION_KIND = "Uploaded audio";
 
 // A stable hue (0–359) from an id, so user collections get a consistent color
 // (curated collections carry their own hue; user ones don't store one).
@@ -48,24 +47,81 @@ function normalizeUserCollection(uc: UserCollection & { tracks: UserTrack[] }): 
   };
 }
 
-// Resolve a collection by id from EITHER source. Curated (R2) is public; a user
-// collection is private and only returned to its owner (`email`).
+export type ResolvedCollection = {
+  collection: CollectionWithTracks;
+  source: "curated" | "user";
+  isOwner: boolean;
+  isPublic: boolean;
+  uploaderName?: string; // for user collections — the Google display name
+};
+
+// Resolve a collection by id from EITHER source, with access info:
+//   - curated (R2): always public, never owned/editable
+//   - user (DB): visible if public OR owned by the caller (`email`)
 export async function resolveCollection(
   id: string,
   email: string | null,
-): Promise<CollectionWithTracks | null> {
+): Promise<ResolvedCollection | null> {
   const curated = await getCollection(id).catch(() => null);
-  if (curated) return curated;
+  if (curated) {
+    return { collection: curated, source: "curated", isOwner: false, isPublic: true };
+  }
 
-  if (!email) return null;
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return null;
-
-  const uc = await prisma.userCollection.findFirst({
-    where: { id, userId: user.id },
+  const uc = await prisma.userCollection.findUnique({
+    where: { id },
     include: { tracks: true },
   });
-  return uc ? normalizeUserCollection(uc) : null;
+  if (!uc) return null;
+
+  let isOwner = false;
+  if (email) {
+    const user = await prisma.user.findUnique({ where: { email } });
+    isOwner = !!user && user.id === uc.userId;
+  }
+  // Private collections are only visible to their owner.
+  if (!uc.isPublic && !isOwner) return null;
+
+  const uploader = await prisma.user.findUnique({
+    where: { id: uc.userId },
+    select: { name: true },
+  });
+
+  return {
+    collection: normalizeUserCollection(uc),
+    source: "user",
+    isOwner,
+    isPublic: uc.isPublic,
+    uploaderName: uploader?.name ?? undefined,
+  };
+}
+
+// All public user collections (across all users) for the global browse feed,
+// tagged with the uploader's name. Excludes the viewer's own and empty ones.
+export async function getPublicCollections(excludeUserId?: string) {
+  const rows = await prisma.userCollection.findMany({
+    where: {
+      isPublic: true,
+      tracks: { some: {} },
+      ...(excludeUserId ? { userId: { not: excludeUserId } } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: 24,
+    include: { _count: { select: { tracks: true } } },
+  });
+
+  const userIds = [...new Set(rows.map((r) => r.userId))];
+  const users = userIds.length
+    ? await prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, name: true } })
+    : [];
+  const nameById = new Map(users.map((u) => [u.id, u.name]));
+
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    trackCount: r._count.tracks,
+    hue: hueFromId(r.id),
+    uploader: nameById.get(r.userId) ?? "A listener",
+  }));
 }
 
 // Lightweight list of a user's collections for the Library.
